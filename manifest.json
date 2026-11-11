@@ -1,0 +1,39 @@
+{
+  "manifest_version": 3,
+  "name": "bilibili-teen-up · B站网页端青少年模式",
+  "version": "1.0.0",
+  "description": "网页端青少年模式：白名单为主过滤 + 黑名单兜底 + 直播全站拦截 + 首页青少年内容流",
+  "permissions": ["storage", "cookies", "declarativeNetRequest"],
+  "host_permissions": ["https://*.bilibili.com/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://*.bilibili.com/*"],
+      "js": ["lib/defaults.js", "lib/judge.js", "early.js"],
+      "run_at": "document_start"
+    },
+    {
+      "matches": ["https://*.bilibili.com/*"],
+      "js": ["content.js"],
+      "css": ["content.css"],
+      "run_at": "document_end"
+    }
+  ],
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "bilibili-teen-up 青少年模式",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "options_page": "options/options.html",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

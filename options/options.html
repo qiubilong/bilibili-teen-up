@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>bilibili-teen-up 配置</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <header class="top">
+    <img src="../icons/icon48.png" alt="">
+    <h1>青少年模式配置</h1>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab active" data-tab="keywords">关键词库</button>
+    <button class="tab" data-tab="ups">UP 名单</button>
+    <button class="tab" data-tab="records">屏蔽记录</button>
+  </nav>
+
+  <!-- ================= 关键词库 ================= -->
+  <section id="tab-keywords" class="panel active">
+    <div class="cols">
+      <div class="col">
+        <div class="col-head">
+          <h2>黑名单关键词</h2>
+          <span class="hint">支持正则条目，如 /原神\d/</span>
+        </div>
+        <div class="kw-add">
+          <input type="text" id="kwBlackInput" placeholder="输入关键词后回车添加">
+        </div>
+        <div class="kw-tools">
+          <button id="kwBlackImport" class="btn ghost">导入</button>
+          <button id="kwBlackExport" class="btn ghost">导出</button>
+          <button id="kwBlackRestore" class="btn ghost danger">恢复默认</button>
+        </div>
+        <ul id="kwBlackList" class="kw-list"></ul>
+      </div>
+      <div class="col">
+        <div class="col-head">
+          <h2>白名单关键词</h2>
+          <span class="hint">命中即放行（黑名单兜底优先）</span>
+        </div>
+        <div class="kw-add">
+          <input type="text" id="kwWhiteInput" placeholder="输入关键词后回车添加">
+        </div>
+        <div class="kw-tools">
+          <button id="kwWhiteImport" class="btn ghost">导入</button>
+          <button id="kwWhiteExport" class="btn ghost">导出</button>
+          <button id="kwWhiteRestore" class="btn ghost danger">恢复默认</button>
+        </div>
+        <ul id="kwWhiteList" class="kw-list"></ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= UP 名单 ================= -->
+  <section id="tab-ups" class="panel">
+    <div class="up-subtabs">
+      <button class="up-tab active" data-list="upWhitelist">白名单（<span id="whiteCount">0</span>）</button>
+      <button class="up-tab" data-list="upBlacklist">黑名单（<span id="blackCount">0</span>）</button>
+    </div>
+
+    <div class="up-import-box">
+      <div class="row-head">
+        <b>批量导入 UP 名称</b>
+        <span class="hint">分隔符：换行 / 逗号 / 顿号 / 分号 / Tab（不支持空格）</span>
+      </div>
+      <textarea id="upPasteArea" rows="4" placeholder="宝宝巴士，凯叔讲故事、李永乐老师&#10;星球研究所&#9;三维地图看世界"></textarea>
+      <div class="row-btns">
+        <button id="upParseBtn" class="btn">解析预览</button>
+        <button id="upSearchBtn" class="btn ghost">按名称智能补全 mid</button>
+        <button id="upBackfillFollowings" class="btn ghost">从我的关注同步名单</button>
+        <span id="upParseInfo" class="hint"></span>
+      </div>
+      <div id="upPreview" class="up-preview hidden"></div>
+      <div class="row-btns hidden" id="upConfirmRow">
+        <button id="upConfirmBtn" class="btn primary">确认入库</button>
+        <button id="upCancelBtn" class="btn ghost">取消</button>
+      </div>
+
+      <div id="upSearchBox" class="hidden">
+        <div class="row-head"><b>智能补全（B站用户搜索）</b></div>
+        <div class="row-btns">
+          <input type="text" id="upSearchInput" placeholder="输入UP昵称，回车搜索">
+          <button id="upSearchGo" class="btn">搜索</button>
+        </div>
+        <div id="upSearchResult" class="up-preview"></div>
+        <div class="row-btns hidden" id="upSearchConfirmRow">
+          <button id="upSearchConfirm" class="btn primary">勾选项入库</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="up-table-tools">
+      <input type="text" id="upFilter" placeholder="搜索过滤昵称…">
+      <span class="spacer"></span>
+      <button id="upFollowAll" class="btn primary">一键关注白名单UP</button>
+      <button id="upExport" class="btn ghost">导出名单</button>
+      <button id="upBatchDelete" class="btn ghost danger">删除勾选</button>
+      <button id="upDeleteNoMid" class="btn ghost danger" title="清理所有「待回填」条目（名称匹配不可靠）">删除无 mid 条目</button>
+    </div>
+    <table class="up-table">
+      <thead>
+        <tr>
+          <th class="w-check"><input type="checkbox" id="upCheckAll"></th>
+          <th class="w-face">头像</th>
+          <th>昵称</th>
+          <th class="w-mode">匹配方式</th>
+          <th class="w-op">操作</th>
+        </tr>
+      </thead>
+      <tbody id="upTableBody"></tbody>
+    </table>
+    <p class="hint" style="margin-top:8px">
+      「mid 精确」= 回填后唯一标识匹配（推荐，自动完成）；「名称匹配 · 待回填」= mid 还未补全的临时状态。<br>
+      回填 mid 的三条路径：① 浏览B站遇到该UP卡片自动回填；②「按名称智能补全」搜索勾选入库；③「从我的关注同步名单」——你在B站关注的UP直接带 mid 入白名单，已有同名条目则补 mid。<br>
+      「一键关注白名单UP」= 全自动：有 mid 直接关注；无 mid 自动按名称搜索B站，取「完全同名·粉丝最多且≥1万」的结果回填 mid 后关注（无同名结果/疑似假冒则跳过防配错）。在表格中勾选条目后变为「关注勾选」＝只关注选中的。需已登录B站；关注后原生推荐流会增加这些UP的内容曝光。<br>
+      「删除无 mid 条目」= 一键清理当前名单中所有「名称匹配 · 待回填」条目（不可靠且难回填时清理用，删除前有确认）。
+    </p>
+  </section>
+
+  <!-- ================= 屏蔽记录 ================= -->
+  <section id="tab-records" class="panel">
+    <div class="up-table-tools">
+      <span class="hint">最近 500 条（标题 / UP / 命中规则 / 时间）</span>
+      <span class="spacer"></span>
+      <button id="clearLog" class="btn ghost danger">清空记录</button>
+    </div>
+    <table class="up-table">
+      <thead>
+        <tr>
+          <th>标题</th>
+          <th class="w-up">UP</th>
+          <th class="w-reason">命中规则</th>
+          <th class="w-time">时间</th>
+        </tr>
+      </thead>
+      <tbody id="logTableBody"></tbody>
+    </table>
+  </section>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="../lib/defaults.js"></script>
+  <script src="options.js"></script>
+</body>
+</html>

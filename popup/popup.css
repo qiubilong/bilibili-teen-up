@@ -1,0 +1,167 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+body {
+  width: 320px;
+  font-family: system-ui, -apple-system, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  background: #f6f7f8;
+  color: #18191c;
+}
+
+/* 头部 */
+.head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, #fb7299, #00a1d6);
+  color: #fff;
+}
+.head img {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+}
+.head .name {
+  font-size: 15px;
+  font-weight: 600;
+}
+.head .sub {
+  font-size: 11px;
+  opacity: 0.85;
+}
+.head .switch {
+  margin-left: auto;
+}
+
+/* 开关 */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 46px;
+  height: 26px;
+  flex-shrink: 0;
+}
+.switch.sm {
+  width: 40px;
+  height: 22px;
+}
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.slider {
+  position: absolute;
+  inset: 0;
+  border-radius: 13px;
+  background: #ccc;
+  transition: 0.2s;
+  cursor: pointer;
+}
+.slider::before {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  transition: 0.2s;
+}
+.switch.sm .slider::before {
+  width: 16px;
+  height: 16px;
+}
+.switch input:checked + .slider {
+  background: #00a1d6;
+}
+.switch input:checked + .slider::before {
+  transform: translateX(20px);
+}
+.switch.sm input:checked + .slider::before {
+  transform: translateX(18px);
+}
+
+/* 选项 */
+.opts {
+  padding: 8px 12px;
+}
+.opt {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 6px;
+  border-bottom: 1px solid #eceef0;
+}
+.opt:last-child {
+  border-bottom: none;
+}
+.opt-name {
+  font-size: 13px;
+  font-weight: 500;
+}
+.opt-desc {
+  font-size: 11px;
+  color: #9499a0;
+  margin-top: 2px;
+}
+
+/* 最近屏蔽 */
+.blocked {
+  padding: 8px 16px 12px;
+}
+.sec-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 0;
+}
+.sec-head a {
+  font-size: 12px;
+  color: #00a1d6;
+  text-decoration: none;
+  font-weight: 400;
+}
+.blocked-list {
+  list-style: none;
+  max-height: 190px;
+  overflow-y: auto;
+}
+.blocked-list li {
+  padding: 6px 0;
+  border-bottom: 1px dashed #eceef0;
+  font-size: 12px;
+}
+.blocked-list li.empty {
+  color: #9499a0;
+  text-align: center;
+  border: none;
+  padding: 14px 0;
+}
+.bl-title {
+  color: #18191c;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bl-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: #9499a0;
+  margin-top: 2px;
+  font-size: 11px;
+}
+.bl-reason {
+  color: #fb7299;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

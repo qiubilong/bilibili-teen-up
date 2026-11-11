@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>bilibili-teen-up</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header class="head">
+    <img src="../icons/icon48.png" alt="">
+    <div>
+      <div class="name">青少年模式</div>
+      <div class="sub">bilibili-teen-up</div>
+    </div>
+    <label class="switch">
+      <input type="checkbox" id="enabled">
+      <span class="slider"></span>
+    </label>
+  </header>
+
+  <section class="opts">
+    <div class="opt">
+      <div>
+        <div class="opt-name">严格白名单档</div>
+        <div class="opt-desc">未命中名单的内容一律隐藏</div>
+      </div>
+      <label class="switch sm">
+        <input type="checkbox" id="strictMode">
+        <span class="slider"></span>
+      </label>
+    </div>
+    <div class="opt">
+      <div>
+        <div class="opt-name">首页拉流</div>
+        <div class="opt-desc">开启=首页替换为青少年聚合流（紧凑无空白）；关闭=保留B站原生推荐流（仅过滤）</div>
+      </div>
+      <label class="switch sm">
+        <input type="checkbox" id="teenFeed">
+        <span class="slider"></span>
+      </label>
+    </div>
+  </section>
+
+  <section class="blocked">
+    <div class="sec-head">
+      <span>最近屏蔽</span>
+      <a href="#" id="openOptions">配置页 →</a>
+    </div>
+    <ul id="blockedList" class="blocked-list">
+      <li class="empty">暂无记录</li>
+    </ul>
+  </section>
+
+  <script src="popup.js"></script>
+</body>
+</html>
