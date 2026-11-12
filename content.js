@@ -54,35 +54,6 @@
       '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
     }[c]));
   }
-  function fmtCount(n) {
-    n = Number(n) || 0;
-    if (n >= 100000000) return (n / 100000000).toFixed(1) + '亿';
-    if (n >= 10000) return (n / 10000).toFixed(1) + '万';
-    return String(n);
-  }
-  function fmtDuration(d) {
-    if (typeof d === 'string' && d.includes(':')) return d;
-    const s = Number(d) || 0;
-    const h = Math.floor(s / 3600);
-    const m = Math.floor((s % 3600) / 60);
-    const sec = s % 60;
-    const mm = String(m).padStart(2, '0');
-    const ss = String(sec).padStart(2, '0');
-    return h > 0 ? h + ':' + mm + ':' + ss : mm + ':' + ss;
-  }
-  function normalizePic(u) {
-    const s = String(u || '');
-    return s.startsWith('//') ? 'https:' + s : s;
-  }
-  function fmtDate(ts) {
-    const t = Number(ts) || 0;
-    if (!t) return '';
-    const d = new Date(t * 1000);
-    const now = new Date();
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    const dd = String(d.getDate()).padStart(2, '0');
-    return d.getFullYear() === now.getFullYear() ? mm + '-' + dd : d.getFullYear() + '-' + mm + '-' + dd;
-  }
   function showBanner(html, tone) {
     let el = document.getElementById('tu-banner');
     if (!el) {
@@ -114,7 +85,7 @@
     '.bili-dyn-list-item', 'li',
   ];
   /** 这些区域里的 BV 链接不做结构兜底（避免误藏评论区/播放器标题） */
-  const SKIP_CLOSEST = '.reply-item, .comment-container, #viewbox_report, .player-box, .tu-feed';
+  const SKIP_CLOSEST = '.reply-item, .comment-container, #viewbox_report, .player-box';
 
   function pickText(card, sels, attr) {
     for (const s of sels) {
@@ -184,14 +155,64 @@
     await send({ type: 'LOG_BLOCK', entries });
   }
 
-  /* ---------------- 卡片处置 ---------------- */
+  /* ---------------- 卡片处置：被拦卡片用知识卡遮罩覆盖 ----------------
+     保留原生布局（无空白），遮罩上实时展示小学英语单词/成语/小知识，
+     把屏蔽位变成学习位；L1 放行时移除遮罩；遮罩卡不可点击跳转 */
+  let knowledgeOffset = Math.floor(Math.random() * 1000);
+  let knowledgeSeq = 0;
+
+  /** 随机取一条知识内容：返回 [主题class, 卡内html]（随机起点+递增取模，一屏内不重复）
+      主题对应 content.css 三套清淡温柔配色：天蓝·英语 / 蜜桃粉·成语 / 薄荷绿·知识 */
+  function knowledgeCardHtml() {
+    const pool = (TU.defaults && TU.defaults.KNOWLEDGE_CARDS) || [];
+    if (!pool.length) return ['ts-know', '<div class="ts-fact">休息一下</div>'];
+    const c = pool[(knowledgeOffset + knowledgeSeq++) % pool.length];
+    if (c.type === 'word') {
+      return [
+        'ts-word',
+        '<div class="ts-mark">英语</div>' +
+          '<div class="ts-main">' + esc(c.word) + '</div>' +
+          '<div class="ts-phon">' + esc(c.phon || '') + '</div>' +
+          '<div class="ts-zh">' + esc(c.zh || '') + '</div>',
+      ];
+    }
+    if (c.type === 'idiom') {
+      return [
+        'ts-idiom',
+        '<div class="ts-mark">成语</div>' +
+          '<div class="ts-main">' + esc(c.text) + '</div>' +
+          '<div class="ts-zh">' + esc(c.mean || '') + '</div>',
+      ];
+    }
+    return [
+      'ts-know',
+      '<div class="ts-mark">知识</div>' +
+        '<div class="ts-fact">' + esc(c.text || '') + '</div>',
+    ];
+  }
+
   function revealCard(card) {
     card.classList.add('tu-pass');
-    card.classList.remove('tu-blocked');
+    card.classList.remove('tu-blocked', 'tu-shielded');
+    const shield = card.querySelector(':scope > .tu-shield');
+    if (shield) shield.remove();
   }
   function hideCard(card) {
-    card.classList.add('tu-blocked');
     card.classList.remove('tu-pass');
+    if (card.querySelector(':scope > .tu-shield')) return; // 已有遮罩（避免重复注入/换内容）
+    card.classList.add('tu-shielded');
+    // 遮罩 inset:0 需要定位包含块：仅 static 卡片补 relative；
+    // 本身 absolute 的旧版瀑布流卡片保持原定位（改 relative 会摧毁其 top/left 布局，遮罩错位半张）
+    if (getComputedStyle(card).position === 'static') card.style.position = 'relative';
+    const el = document.createElement('div');
+    const pair = knowledgeCardHtml();
+    el.className = 'tu-shield ' + pair[0];
+    el.innerHTML = pair[1];
+    card.appendChild(el);
+    // 矮条卡（排行榜/右侧推荐位）竖排溢出：渲染后测高，切换横向紧凑布局
+    requestAnimationFrame(() => {
+      if (card.isConnected && card.offsetHeight < 150) el.classList.add('ts-mini');
+    });
   }
 
   /* ---------------- L1：API 复核（黑 tid 兜底 / 严格档放行） ---------------- */
@@ -271,6 +292,19 @@
     true
   );
 
+  // 拦截卡不可点击跳转：CSS pointer-events 已断链链接，此处捕获兑底
+  // （含站点在容器上委托的自定义导航，含遮罩自身的点击）
+  document.addEventListener(
+    'click',
+    (e) => {
+      if (e.target && e.target.closest && e.target.closest('.tu-shielded')) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    },
+    true
+  );
+
   /* ---------------- mid 自动回填（计划书 §6.5） ---------------- */
   const backfillBuffer = new Map(); // name → {name, mid}
   function collectBackfill(meta) {
@@ -295,7 +329,6 @@
   /* ---------------- 卡片主处理 ---------------- */
   function processCard(card) {
     if (!card || !card.isConnected || !card.querySelector) return;
-    if (card.closest('.tu-feed')) return; // 自建青少年流卡片不走过滤
     const meta = extractMeta(card);
     const sig = meta.title + '|' + meta.upName + '|' + meta.bvid;
     if (card.dataset.tuState && card.dataset.tuSig === sig) return; // 已处理且内容未变（Vue 复用防御）
@@ -363,7 +396,6 @@
       hideLiveTabs();
       searchGuard();
       spaceBanner();
-      ensureHomeFeed();
     } catch (e) {
       // 单次扫描异常不影响后续轮询
     }
@@ -537,170 +569,6 @@
     }
   }
 
-  /* ---------------- 首页青少年内容流（计划书 §6.4） ---------------- */
-  const NATIVE_FEED_SELS = [
-    '#i_cecream .feed-card-box', '.feed-card-box', '.recommended-container_wall',
-    '.recommended-container', '.feed2', '.bili-feed4-layout',
-  ];
-  const feedState = {
-    inited: false,
-    page: 0,
-    loading: false,
-    done: false,
-    seen: new Set(),
-    grid: null,
-    status: null,
-    sentinel: null,
-  };
-
-  function findNativeFeedBox() {
-    for (const s of NATIVE_FEED_SELS) {
-      let el = null;
-      try { el = document.querySelector(s); } catch (_e) { /* ignore */ }
-      if (el && el.querySelector('a[href*="/video/BV"], a[href*="live.bilibili.com"], .bili-video-card')) {
-        return el;
-      }
-    }
-    return null;
-  }
-
-  /** 青少年流卡片：元素对齐B站首页卡片（封面+时长角标+hover播放浮层 / 两行标题 / UP·播放量·推荐理由）
-      内容源为B站官方推荐流，插件仅过滤整理；推荐流无发布时间，日期位展示推荐理由 */
-  function buildFeedCard(it) {
-    const card = document.createElement('div');
-    card.className = 'tu-feed-card';
-    if (it.bvid) card.dataset.bvid = it.bvid; // 供异步 L1 复核后移除
-    const pic = normalizePic(it.pic);
-    const dur = it.duration ? '<span class="tu-feed-dur">' + esc(fmtDuration(it.duration)) + '</span>' : '';
-    const date = fmtDate(it.pubdate);
-    card.innerHTML =
-      '<a class="tu-feed-link" href="https://www.bilibili.com/video/' + esc(it.bvid) + '" target="_blank" rel="noopener">' +
-      '<div class="tu-feed-pic">' +
-      '<img loading="lazy" referrerpolicy="no-referrer" src="' + esc(pic) + '" alt="">' +
-      dur +
-      '<span class="tu-feed-hover"><svg viewBox="0 0 28 28" width="34" height="34"><circle cx="14" cy="14" r="13" fill="rgba(0,0,0,.55)"/><path d="M11.5 8.8v10.4l9-5.2z" fill="#fff"/></svg></span>' +
-      '</div>' +
-      '<div class="tu-feed-info">' +
-      '<div class="tu-feed-title" title="' + esc(it.title) + '">' + esc(it.title) + '</div>' +
-      '<div class="tu-feed-meta">' +
-      '<span class="tu-feed-up" title="' + esc(it.up || '') + '">' + esc(it.up || '') + '</span>' +
-      '<span class="tu-feed-play">' + fmtCount(it.play) + '播放</span>' +
-      (date
-        ? '<span class="tu-feed-date">' + date + '</span>'
-        : it.reason
-          ? '<span class="tu-feed-date tu-feed-reason" title="推荐理由">' + esc(it.reason) + '</span>'
-          : '') +
-      '</div>' +
-      '</div></a>';
-    return card;
-  }
-
-  /** 异步 L1 复核：推荐流无分区信息，渲染后查 view 接口补黑分区/黑词兑底，命中则移除卡片 */
-  function auditFeedCard(it) {
-    send({ type: 'JUDGE_BV', bvid: it.bvid }).then((res) => {
-      if (!res || !res.ok || !res.data || res.data.verdict !== 'block') return;
-      // 与原生卡片同渠道记录屏蔽日志（含标题/UP，便于家长回看）
-      send({
-        type: 'LOG_BLOCK',
-        entries: [{ title: it.title, bvid: it.bvid, up: it.up, reason: res.data.reason || '', ts: Math.floor(Date.now() / 1000) }],
-      });
-      const card = feedState.grid && feedState.grid.querySelector('[data-bvid="' + it.bvid + '"]');
-      if (card) card.remove();
-    }).catch(() => {});
-  }
-
-  async function loadFeedPage() {
-    if (feedState.loading || feedState.done) return;
-    feedState.loading = true;
-    if (feedState.status) feedState.status.textContent = '加载中…';
-    const res = await send({ type: 'FEED_FETCH', page: feedState.page + 1 });
-    feedState.loading = false;
-    if (!res || !res.ok) {
-      if (feedState.status) feedState.status.textContent = '加载失败，稍后自动重试…';
-      setTimeout(loadFeedPage, 5000);
-      return;
-    }
-    const data = res.data || {};
-    const items = (data.items || []).filter((it) => it.bvid && !feedState.seen.has(it.bvid));
-    items.forEach((it) => feedState.seen.add(it.bvid));
-    const frag = document.createDocumentFragment();
-    items.forEach((it) => frag.appendChild(buildFeedCard(it)));
-    feedState.grid.appendChild(frag);
-    items.forEach(auditFeedCard); // 异步补位：黑分区/黑词命中后移除
-    feedState.page += 1;
-
-    if (!feedState.grid.children.length) {
-      if (data.degraded) {
-        feedState.status.textContent = '数据源暂不可用（API 限流保护中），稍后刷新或点「换一批」重试';
-        feedState.done = true;
-        return;
-      }
-      // 本屏全被过滤：自动续拉下一屏（连续空屏≤5次防死循环），游标滚动会有新内容
-      feedState.emptyStreak = (feedState.emptyStreak || 0) + 1;
-      if (feedState.emptyStreak <= 5) {
-        loadFeedPage();
-        return;
-      }
-      feedState.status.innerHTML =
-        '本屏推荐均被过滤' + (data.hidden ? '（已拦 ' + data.hidden + ' 条）' : '') +
-        '，点右上「换一批」拉新推荐。<br>' +
-        '严格档下仅展示命中白名单的内容（本屏过滤比例会很高）；' +
-        '想看更多可在插件 popup 切换「宽松档」（仅屏蔽黑名单内容）。';
-    } else {
-      feedState.status.textContent = '';
-      feedState.emptyStreak = 0;
-    }
-  }
-
-  function buildFeedShell(native) {
-    const wrap = document.createElement('div');
-    wrap.id = 'tu-feed';
-    wrap.innerHTML =
-      '<div class="tu-feed-head">' +
-      '<img class="tu-feed-logo" src="' + chrome.runtime.getURL('icons/icon48.png') + '" alt="">' +
-      '<div><div class="tu-feed-title-lg">青少年内容流</div>' +
-      '<div class="tu-feed-sub">B站推荐流 · 已按你的黑白名单过滤 · 推荐理由展示在卡片右下</div></div>' +
-      '<button class="tu-feed-refresh" title="重新拉取一批推荐">换一批</button>' +
-      '</div>' +
-      '<div class="tu-feed-grid"></div>' +
-      '<div class="tu-feed-status"></div>' +
-      '<div class="tu-feed-sentinel"></div>';
-    if (native.parentNode) native.parentNode.insertBefore(wrap, native.nextSibling);
-    feedState.grid = wrap.querySelector('.tu-feed-grid');
-    feedState.status = wrap.querySelector('.tu-feed-status');
-    feedState.sentinel = wrap.querySelector('.tu-feed-sentinel');
-    // 换一批：清空重拉（推荐流 refresh=1，拉取新一批推荐）
-    wrap.querySelector('.tu-feed-refresh').addEventListener('click', () => {
-      if (feedState.loading) return;
-      feedState.grid.innerHTML = '';
-      feedState.page = 0;
-      feedState.seen.clear();
-      feedState.done = false;
-      feedState.emptyStreak = 0;
-      feedState.status.textContent = '';
-      loadFeedPage();
-    });
-    const io = new IntersectionObserver(
-      (ents) => {
-        if (ents.some((e) => e.isIntersecting)) loadFeedPage();
-      },
-      { rootMargin: '600px' }
-    );
-    io.observe(feedState.sentinel);
-  }
-
-  function ensureHomeFeed() {
-    if (!page.home || !enabled || !cfg || !cfg.settings.teenFeed) return;
-    if (feedState.inited) return;
-    const native = findNativeFeedBox();
-    if (!native) return; // SPA 未渲染完，下轮 scan 再试
-    feedState.inited = true;
-    native.setAttribute('data-tu-native-feed', '');
-    native.style.display = 'none'; // 隐藏原生推荐流（不销毁，便于关闭拉流后恢复）
-    buildFeedShell(native);
-    loadFeedPage();
-  }
-
   /* ---------------- 配置加载与热更新 ---------------- */
   async function loadConfig() {
     const res = await send({ type: 'GET_CONFIG' });
@@ -714,7 +582,9 @@
   function rescanAll() {
     document.querySelectorAll('[data-tu-state]').forEach((c) => {
       delete c.dataset.tuState;
-      c.classList.remove('tu-pass', 'tu-blocked');
+      c.classList.remove('tu-pass', 'tu-blocked', 'tu-shielded');
+      const shield = c.querySelector(':scope > .tu-shield'); // 名单变化后重新判定：先摘遮罩
+      if (shield) shield.remove();
     });
     scan();
   }

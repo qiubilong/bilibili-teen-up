@@ -1,11 +1,12 @@
 /**
- * popup/popup.js —— 总开关、严格/宽松档、青少年流、直播开关、最近屏蔽速览（计划书 §6.6）
+ * popup/popup.js —— 总开关、过滤模式（仅黑名单/严格白名单）、最近屏蔽速览（计划书 §6.6）
+ * 注：首页自建拉流已废弃——保留B站原生流，被拦卡片用知识卡遮罩覆盖，无需开关
  */
 (function () {
   'use strict';
 
   const $ = (id) => document.getElementById(id);
-  const TOGGLES = ['enabled', 'strictMode', 'teenFeed'];
+  const TOGGLES = ['enabled'];
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({
@@ -43,6 +44,8 @@
     for (const id of TOGGLES) {
       $(id).checked = !!s[id];
     }
+    // 「仅过滤黑名单」是 strictMode 的反向呈现（同一底层状态，不另存第二份避免不同步）
+    $('blackOnly').checked = s.strictMode === false;
   }
 
   async function loadBlocked() {
@@ -67,7 +70,7 @@
       chrome.storage.local.get({ settings: {} }, resolve)
     );
     const settings = Object.assign(
-      { enabled: true, strictMode: true, teenFeed: true },
+      { enabled: true, strictMode: true },
       r.settings || {},
       patch
     );
@@ -78,6 +81,9 @@
 
   TOGGLES.forEach((id) => {
     $(id).addEventListener('change', () => writeSetting({ [id]: $(id).checked }));
+  });
+  $('blackOnly').addEventListener('change', () => {
+    writeSetting({ strictMode: !$('blackOnly').checked });
   });
 
   $('openOptions').addEventListener('click', (e) => {

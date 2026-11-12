@@ -21,21 +21,11 @@
   <section class="opts">
     <div class="opt">
       <div>
-        <div class="opt-name">严格白名单档</div>
-        <div class="opt-desc">未命中名单的内容一律隐藏</div>
+        <div class="opt-name">仅过滤黑名单</div>
+        <div class="opt-desc">开启=只拦黑名单（黑词/黑UP/黑分区/直播），其余全部放行；关闭=严格白名单档（未命中白名单的内容隐藏）</div>
       </div>
       <label class="switch sm">
-        <input type="checkbox" id="strictMode">
-        <span class="slider"></span>
-      </label>
-    </div>
-    <div class="opt">
-      <div>
-        <div class="opt-name">首页拉流</div>
-        <div class="opt-desc">开启=首页替换为青少年聚合流（紧凑无空白）；关闭=保留B站原生推荐流（仅过滤）</div>
-      </div>
-      <label class="switch sm">
-        <input type="checkbox" id="teenFeed">
+        <input type="checkbox" id="blackOnly">
         <span class="slider"></span>
       </label>
     </div>

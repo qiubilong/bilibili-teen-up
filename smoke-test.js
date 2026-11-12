@@ -35,6 +35,8 @@ cfg.upWhitelist = [TU.defaults.makeUpEntry('李永乐老师')]; // 无 mid：名
 const jcfg = TU.judge.buildJudgeConfig(cfg);
 
 eq(TU.judge.judgeCard({ title: '王者荣耀五杀集锦', upName: '路人', tid: 172 }, jcfg), { verdict: 'block', reason: 'black-word:王者' }, '黑词拦截');
+eq(TU.judge.judgeCard({ title: '今天天气真好', upName: '王者解说君' }, jcfg), { verdict: 'block', reason: 'black-word:王者' }, 'UP名命中黑词拦截');
+eq(TU.judge.judgeCard({ title: '今天天气真好', upName: '王者解说君', upMid: 2 }, TU.judge.buildJudgeConfig({ ...cfg, upWhitelist: [...(cfg.upWhitelist || []), TU.defaults.makeUpEntry('王者解说君', 2)] })).verdict, 'block', 'UP名黑词优先于白UP名单');
 eq(TU.judge.judgeCard({ title: '原神3.0', upName: '李永乐老师', upMid: 1 }, jcfg).verdict, 'block', '白名单UP发黑词仍拦（兜底）');
 eq(TU.judge.judgeCard({ title: '随便什么标题', upName: '李永乐老师', upMid: 1 }, jcfg), { verdict: 'pass', reason: 'white-up' }, '白名单UP放行');
 eq(TU.judge.judgeCard({ title: '随便什么标题', upName: '李永乐老师' }, jcfg).verdict, 'pass', '白名单UP名称全等匹配');

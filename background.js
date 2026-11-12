@@ -297,73 +297,6 @@ async function judgeBv(bvid, jcfg) {
   return record;
 }
 
-/* ---------------- 首页青少年流：拉取B站官方推荐流 + 过滤（实测反馈第三轮修订）
-   不自建内容源：直接调B站首页推荐 feed API（wbi 签名 + cursor 游标翻页，
-   个性化/无限量由B站推荐算法供给），逐条过判定链，block 与严格档中间地带直接丢弃
-   （不渲染故无空白），仅收录 pass 条目紧凑渲染 —— 插件只做「屏蔽与整理」 ---------------- */
-let feedCursor = '';
-
-function feedItemFromRcmd(it) {
-  return {
-    bvid: it.bvid || '',
-    title: it.title || '',
-    pic: it.pic || '',
-    up: it.owner ? it.owner.name : '',
-    upMid: it.owner ? it.owner.mid : undefined,
-    play: it.stat ? it.stat.view : 0,
-    duration: it.duration || 0,
-    pubdate: 0, // 推荐流无发布时间，卡片展示推荐理由
-    reason: (it.rcmd_reason && it.rcmd_reason.content) || '',
-    source: 'rcmd',
-  };
-}
-
-async function fetchFeed(page, cfg, jcfg) {
-  page = Math.max(1, page | 0);
-  if (page <= 1) feedCursor = ''; // 首页/换一批：重新刷新推荐
-  const json = await fetchJson(API + '/x/web-interface/wbi/index/top/feed/rcmd', {
-    needWbi: true,
-    params: {
-      ps: 14,
-      refresh: page <= 1 ? 1 : 0,
-      feed_version: 'V8',
-      cursor: feedCursor,
-    },
-  });
-  const data = (json && json.data) || {};
-  const raw = Array.isArray(data.items) ? data.items : [];
-  // 游标滚动（cursor 为字符串；兼容对象形态）
-  const cur = data.cursor;
-  if (typeof cur === 'string') feedCursor = cur;
-  else if (cur && typeof cur.name === 'string') feedCursor = cur.name;
-
-  const items = [];
-  let hidden = 0;
-  for (const it of raw) {
-    if (!it || !it.bvid) continue;
-    const meta = feedItemFromRcmd(it);
-    const verdict = TU.judge.judgeCard(
-      {
-        title: meta.title,
-        desc: '',
-        upName: meta.up,
-        upMid: meta.upMid,
-        tid: undefined, // 推荐流无分区信息，黑分区兑底由渲染后异步 L1 复核补位
-        isLive: it.goto === 'live', // 推荐流混入的直播卡片（直播强制拦截）
-        tags: [],
-      },
-      jcfg
-    );
-    // 只收录 pass：block 丢弃；严格档中间地带同样丢弃（宽松档下中间地带即 pass）
-    if (verdict.verdict !== 'pass') {
-      hidden++;
-      continue;
-    }
-    items.push(meta);
-  }
-  return { items, hidden, degraded: isDegraded() };
-}
-
 /* ---------------- 用户搜索（智能补全，计划书 §6.5） ---------------- */
 async function searchUp(name) {
   const json = await fetchJson(API + '/x/web-interface/wbi/search/type', {
@@ -666,12 +599,6 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
           return { ok: true, data: record };
         }
 
-        case 'FEED_FETCH': {
-          const jcfg = TU.judge.buildJudgeConfig(cfg);
-          const data = await fetchFeed(msg.page || 1, cfg, jcfg);
-          return { ok: true, data };
-        }
-
         case 'SEARCH_UP': {
           const data = await searchUp(String(msg.name || ''));
           return { ok: true, data };
@@ -734,16 +661,16 @@ chrome.runtime.onInstalled.addListener(async () => {
     if (stored[k] == null) patch[k] = defaults[k];
   }
 
-  // v1.3 迁移（一次性）：移除 feedRegion 三档设置与 blockLive 开关；
-  // teenFeed 默认改开（实测反馈：原生流过滤后大量空白，首页默认替换为自建聚合流更合适）
+  // v1.4 迁移（一次性）：移除遗留历史字段 feedRegion/blockLive/teenFeed
+  // （首页拉流已废弃——保留B站原生流，被拦卡片由 content.js 知识卡遮罩覆盖）
   const mig = await storageGet({ tuMigration: '' });
-  if (mig.tuMigration !== 'v1.3' && stored.settings) {
+  if (mig.tuMigration !== 'v1.4' && stored.settings) {
     const s = { ...stored.settings };
     delete s.feedRegion;
     delete s.blockLive; // 直播拦截改为强制行为，仅受 enabled 总开关控制
-    s.teenFeed = true;
+    delete s.teenFeed;  // 首页拉流开关废弃
     patch.settings = s;
-    patch.tuMigration = 'v1.3';
+    patch.tuMigration = 'v1.4';
   }
 
   if (Object.keys(patch).length) await storageSet(patch);

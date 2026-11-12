@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "bilibili-teen-up · B站网页端青少年模式",
-  "version": "1.0.0",
-  "description": "网页端青少年模式：白名单为主过滤 + 黑名单兜底 + 直播全站拦截 + 首页青少年内容流",
+  "version": "1.4.0",
+  "description": "网页端青少年模式：白名单为主过滤 + 黑名单兑底 + 直播全站拦截 + 知识卡遮罩",
   "permissions": ["storage", "cookies", "declarativeNetRequest"],
   "host_permissions": ["https://*.bilibili.com/*"],
   "background": {

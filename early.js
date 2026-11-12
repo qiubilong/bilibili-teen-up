@@ -113,8 +113,8 @@
   ].join(',');
 
   const EARLY_HIDE_CSS = [
-    // 候选卡片：先藏，等待 content.js 判定放行（.tu-pass）或移除（.tu-blocked）
-    CARD_SELECTORS.split(',').map((s) => s.trim() + ':not(.tu-pass):not(.tu-reveal)').join(',') + '{visibility:hidden!important}',
+    // 候选卡片：先藏，等待 content.js 判定放行（.tu-pass）或遮罩覆盖（.tu-shielded：卡片可见但被知识卡盖住）
+    CARD_SELECTORS.split(',').map((s) => s.trim() + ':not(.tu-pass):not(.tu-reveal):not(.tu-shielded)').join(',') + '{visibility:hidden!important}',
     // 直播/游戏导航入口与直播 tab（配合 content.js 的文本级 tab 隐藏）
     'a[href*="//live.bilibili.com"],a[href^="https://live.bilibili.com"]{display:none!important}',
     'a[href*="game.bilibili.com"],a[href*="//game.bilibili.com"]{display:none!important}',

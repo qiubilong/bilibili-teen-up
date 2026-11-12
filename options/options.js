@@ -119,9 +119,11 @@
   async function exportKw(kind) {
     const key = KW[kind];
     const r = await get({ [key]: [] });
+    // 黑名单导出用逗号分隔（导入 parseNames 原生支持逗号，可无损导回）；白名单保持换行
+    const comma = kind === 'black';
     try {
-      await navigator.clipboard.writeText((r[key] || []).join('\n'));
-      toast('已复制到剪贴板，可粘贴到文本保存');
+      await navigator.clipboard.writeText((r[key] || []).join(comma ? ',' : '\n'));
+      toast(comma ? '已复制到剪贴板（逗号分隔），可粘贴保存' : '已复制到剪贴板，可粘贴到文本保存');
     } catch (_e) {
       toast('剪贴板不可用，请手动复制');
     }

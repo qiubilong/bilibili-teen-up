@@ -1,14 +1,177 @@
 /* ============================================================
-   content.css —— 拦截层 / 横幅 / 青少年流 / 拉黑按钮样式
+   content.css —— 拦截层 / 横幅 / 知识卡遮罩 / 拉黑按钮样式
    （配合 early.js 的 #tu-early-hide 动态样式使用）
    ============================================================ */
 
 /* ---------------- 卡片终态 ---------------- */
-/* 拦截移除（early 阶段为 visibility:hidden 防闪现，content 判定后升级为 display:none） */
+/* 旧版拦截直接隐藏；现已改为知识卡遮罩覆盖（.tu-shielded），
+   .tu-blocked 仅作为旧状态兼容保留 */
 .tu-blocked {
   display: none !important;
 }
-/* 放行：抵消 early 隐藏（.tu-pass 由 early CSS 的 :not(.tu-pass) 消费） */
+
+/* ---------------- 知识卡遮罩（被拦卡片覆盖层） ----------------
+   保留原生卡片占位（无空白），遮罩上展示小学英语单词/成语/小知识。
+   清淡温柔三主题：天蓝·英语（ts-word）/ 蜜桃粉·成语（ts-idiom）/ 薄荷绿·知识（ts-know）
+   注：卡片定位由 content.js 按需补 relative（static 才补，不破坏旧版瀑布流 absolute 卡片） */
+.tu-shielded * {
+  pointer-events: none !important; /* 拦截卡不可交互：断链点击/中键跳转 */
+}
+.tu-shielded .tu-shield,
+.tu-shielded .tu-shield * {
+  pointer-events: auto !important; /* 遮罩本身接管点击（配合 content.js 捕获拦截） */
+}
+.tu-shielded .tu-ban-btn {
+  pointer-events: auto !important; /* 豁免：拉黑按钮仍可点击 */
+}
+.tu-shield {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: inherit; /* 跟随卡片圆角，不露角 */
+  text-align: center;
+  font-family: 'Kaiti SC', 'STKaiti', KaiTi, 'DFKai-SB', 'Microsoft YaHei', serif;
+  cursor: default;
+  overflow: hidden;
+}
+/* 绫裱式双线内框 */
+.tu-shield::before {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border: 1.5px solid currentColor;
+  border-radius: 5px;
+  opacity: 0.22;
+  pointer-events: none;
+}
+.tu-shield::after {
+  content: '';
+  position: absolute;
+  inset: 9px;
+  border: 1px solid currentColor;
+  border-radius: 3px;
+  opacity: 0.12;
+  pointer-events: none;
+}
+/* 印章式角标 */
+.tu-shield .ts-mark {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--seal);
+  color: #fff;
+  font-size: 12px;
+  letter-spacing: 1px;
+  line-height: 1;
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.35);
+}
+.tu-shield .ts-main {
+  max-width: 100%;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tu-shield .ts-phon {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 13px;
+  opacity: 0.72;
+  line-height: 1.3;
+  flex-shrink: 0;
+}
+.tu-shield .ts-zh {
+  font-size: 13px;
+  opacity: 0.85;
+  line-height: 1.55;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.tu-shield .ts-fact {
+  font-size: 14px;
+  line-height: 1.7;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* 清淡温柔风三主题（马卡龙色系）：天蓝·英语 / 蜜桃粉·成语 / 薄荷绿·知识
+   低饱和高明度背景 + 双色角晕添活力，印章色保持明快 */
+
+/* 天蓝 · 英语单词 */
+.tu-shield.ts-word {
+  --seal: #5aa7dd;
+  color: #3d7fb3;
+  background:
+    radial-gradient(circle at 88% 10%, rgba(90, 167, 221, 0.13) 0 26%, transparent 27%),
+    radial-gradient(circle at 8% 92%, rgba(167, 148, 224, 0.1) 0 20%, transparent 21%),
+    linear-gradient(160deg, #f8fcff 0%, #eef6fc 55%, #e6f0fa 100%);
+}
+/* 蜜桃粉 · 成语 */
+.tu-shield.ts-idiom {
+  --seal: #eb8fae;
+  color: #c1708b;
+  background:
+    radial-gradient(circle at 88% 10%, rgba(235, 143, 174, 0.13) 0 24%, transparent 25%),
+    radial-gradient(circle at 8% 92%, rgba(240, 186, 138, 0.12) 0 18%, transparent 19%),
+    linear-gradient(160deg, #fffbfc 0%, #fdf1f5 55%, #fbeaf0 100%);
+}
+/* 薄荷绿 · 小知识 */
+.tu-shield.ts-know {
+  --seal: #5cab80;
+  color: #4a9166;
+  background:
+    radial-gradient(circle at 88% 10%, rgba(92, 171, 128, 0.13) 0 24%, transparent 25%),
+    radial-gradient(circle at 8% 92%, rgba(235, 205, 130, 0.14) 0 18%, transparent 19%),
+    linear-gradient(160deg, #f9fdf9 0%, #f0f9f0 55%, #e8f5ea 100%);
+}
+
+/* 矮条卡（排行榜/右侧推荐位，高<150px）：横向紧凑布局，只留印章+主文 */
+.tu-shield.ts-mini {
+  flex-direction: row;
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 4px 12px;
+}
+.tu-shield.ts-mini::after {
+  display: none;
+}
+.tu-shield.ts-mini .ts-mark {
+  width: 26px;
+  height: 26px;
+  font-size: 11px;
+}
+.tu-shield.ts-mini .ts-main {
+  font-size: 15px;
+  letter-spacing: 1px;
+}
+.tu-shield.ts-mini .ts-phon,
+.tu-shield.ts-mini .ts-zh {
+  display: none;
+}
+.tu-shield.ts-mini .ts-fact {
+  -webkit-line-clamp: 1;
+  font-size: 12px;
+}
 
 /* ---------------- UP 一键拉黑按钮 ---------------- */
 .tu-card-host {
@@ -121,158 +284,6 @@
   background: #00b5e5;
 }
 
-/* ---------------- 首页青少年内容流 ---------------- */
-#tu-feed {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 20px 0 60px;
-  font-family: system-ui, -apple-system, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-}
-.tu-feed-head {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 4px 16px;
-}
-.tu-feed-logo {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-}
-.tu-feed-title-lg {
-  font-size: 20px;
-  font-weight: 600;
-  color: #18191c;
-}
-.tu-feed-sub {
-  font-size: 12px;
-  color: #9499a0;
-  margin-top: 2px;
-}
-.tu-feed-refresh {
-  margin-left: auto;
-  padding: 6px 18px;
-  border: 1px solid #e3e5e7;
-  border-radius: 8px;
-  background: #fff;
-  color: #61666d;
-  font-size: 13px;
-  cursor: pointer;
-  flex-shrink: 0;
-}
-.tu-feed-refresh:hover {
-  color: #00aeec;
-  border-color: #00aeec;
-}
-.tu-feed-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
-  gap: 20px;
-}
-.tu-feed-card {
-  transition: transform 0.2s;
-}
-.tu-feed-card:hover {
-  transform: translateY(-3px);
-}
-.tu-feed-link {
-  display: block;
-  text-decoration: none;
-  color: inherit;
-}
-.tu-feed-pic {
-  position: relative;
-  aspect-ratio: 16 / 10;
-  border-radius: 8px;
-  overflow: hidden;
-  background: #f1f2f3;
-}
-.tu-feed-pic img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-.tu-feed-dur {
-  position: absolute;
-  right: 6px;
-  bottom: 6px;
-  padding: 1px 6px;
-  border-radius: 4px;
-  background: rgba(0, 0, 0, 0.6);
-  color: #fff;
-  font-size: 12px;
-}
-/* hover 播放按钮浮层（对齐B站首页卡片交互） */
-.tu-feed-hover {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.2);
-  opacity: 0;
-  transition: opacity 0.2s;
-  pointer-events: none;
-}
-.tu-feed-card:hover .tu-feed-hover {
-  opacity: 1;
-}
-.tu-feed-info {
-  padding: 8px 2px 0;
-}
-.tu-feed-title {
-  font-size: 14px;
-  line-height: 1.5;
-  color: #18191c;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-.tu-feed-card:hover .tu-feed-title {
-  color: #00aeec; /* B站主题蓝，与首页卡片一致 */
-}
-.tu-feed-meta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 6px;
-  font-size: 13px;
-  color: #9499a0;
-}
-.tu-feed-up {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.tu-feed-card:hover .tu-feed-up {
-  color: #61666d;
-}
-.tu-feed-play {
-  flex-shrink: 0;
-}
-.tu-feed-date {
-  flex-shrink: 0;
-}
-.tu-feed-reason {
-  color: #ff8f2d;
-  max-width: 88px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.tu-feed-status {
-  padding: 24px 0;
-  text-align: center;
-  font-size: 13px;
-  color: #9499a0;
-}
-.tu-feed-sentinel {
-  height: 1px;
-}
 
 /* ---------------- 静态兜底隐藏（与 early.js 呼应，content.css 常驻） ---------------- */
 /* 直播 tab 链接（首页/分区导航） */
